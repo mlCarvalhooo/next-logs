@@ -1,0 +1,17 @@
+.LogBox{
+    display: flex;
+    overflow: auto;
+    margin: 30px;
+    padding: 10px;
+    height: 600px;
+    width: 80%;
+    background-color: aquamarine;
+
+    //Remove default scrollbar
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.LogBox::-webkit-scrollbar{
+    display: none;
+}
