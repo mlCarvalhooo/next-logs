@@ -1,20 +1,28 @@
 import { MongoClient } from 'mongodb';
-import nextConnect from 'next-connect';
 
-const client = new MongoClient(process.env.MONGODB_URI, {
-	useNewUrlParser: true,
-	useUnifiedTopology: true,
-});
+const uri = process.env.MONGODB_URI;
+const dbName = 'Raspberry';
 
-async function database(req, res, next) {
-	if (!client.isConnected()) await client.connect();
-	req.dbClient = client;
-	req.db = client.db('Raspberry');
-	return next();
+var cachedClient = null
+var cachedDb = null
+
+export async function connectToDatabase() {
+	if (cachedClient && cachedDb) {
+		return {
+			client: cachedClient,
+			db: cachedDb
+		}
+	}
+
+	const client = await MongoClient.connect(uri, {
+		useNewUrlParser: true,
+		useUnifiedTopology: true,
+	});
+
+	const db = await client.db(dbName)
+
+	cachedClient = client
+	cachedDb = db
+
+	return { client, db }
 }
-
-const middleware = nextConnect();
-
-middleware.use(database);
-
-export default middleware;
