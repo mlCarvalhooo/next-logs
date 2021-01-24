@@ -1,10 +1,8 @@
 import axios from 'axios';
-import { Component, createRef, useEffect, useRef } from 'react';
+import { Component } from 'react';
 import Scrollbars from 'react-custom-scrollbars';
-import CustomScrollbar from '../CustomScroll/CustomScroll';
-const io = require('socket.io-client');
 import styles from './LogBox.module.scss';
-
+import Pusher from 'pusher-js';
 
 export default class LogBox extends Component {
     constructor(props) {
@@ -12,26 +10,32 @@ export default class LogBox extends Component {
         this.state = {
             logs: []
         };
-
-
     }
 
     async componentDidMount() {
-        this.scrollToBottom();
-        const logs = await (await axios.get('/api/log')).data.data.logs;
+        const logs = (await (await axios.get('/api/log')).data.data.logs);
         this.setState({ logs: logs });
 
-        this.socket = io();
-        this.socket.on('FromAPI', data => {
-            this.setState({
-                logs: [...this.state.logs, data.log]
-            });
-            this.scrollToBottom();
+        this.pusher = new Pusher(process.env.PUSHER_KEY, {
+            cluster: 'eu'
+        });
+
+        var channel = this.pusher.subscribe('my-channel');
+        
+        var ref = this;
+        channel.bind('my-event', function (data) {
+            ref.setState({
+                logs: [...ref.state.logs, data.log]
+            })
         });
     };
 
+    componentWillUnmount() {
+        this.pusher.disconnect();
+    }
+
     scrollToBottom = () => {
-        if (this.refs.myScrollbar !== undefined)
+        if (this.refs.myScrollbar != undefined)
             this.refs.myScrollbar.scrollToBottom();
     }
 
@@ -40,8 +44,6 @@ export default class LogBox extends Component {
     }
 
     render() {
-        this.scrollToBottom();
-        console.log(this.state.logs);
         return (
             <div className={styles.LogBox}>
                 <Scrollbars

@@ -1,10 +1,7 @@
 const app = require("express")();
 const server = require("http").Server(app);
-const io = require("socket.io")(server);
 const next = require("next");
-const { setIO } = require("./socketIO");
-
-setIO(io);
+const bodyParser = require('body-parser');
 
 const port = parseInt(process.env.PORT, 10) || 3000;
 const dev = process.env.NODE_ENV !== "production";
@@ -12,6 +9,9 @@ const nextApp = next({ dev });
 const nextHandler = nextApp.getRequestHandler();
 
 nextApp.prepare().then(() => {
+
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));
 
     app.get("*", (req, res) => {
         return nextHandler(req, res);
