@@ -1,44 +1,39 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import { getLog, log } from "../../api/Log";
-import LogMessage from "../../api/models/LogMessage";
+const { getIO } = require("../../socketIO");
 
-export default (req, res) => {
-	res.statusCode = 200;
-	switch (req.method) {
-		case 'GET':
-			res.json({
-				status: 'SUCCESS',
-				data: {
-					logs: getLog()
-				}
-			})
-			break;
-		case 'POST':
-			if (req.body.message) {
-				res.json({
-					status: 'SUCCESS'
-				});
+import nextConnect from 'next-connect';
+import middleware from '../../database/database';
 
-				log(new LogMessage(new Date().getTime(), req.body.message));
-			} else {
-				res.json({
-					status: 'DENIED',
-					errorDescription: 'body.message is undefined.'
-				})
-			}
-			break;
+const handler = nextConnect();
+handler.use(middleware);
+
+handler.get(async (req, res) => {
+
+	const doc = await req.db.collection('Devices').findOne()
+	console.log(doc);
+	res.json({
+		status: 'SUCCESS',
+		data: doc
+	});
+});
+
+handler.post(async (req, res) => {
+	if (req.body.message) {
+		const doc = await req.db.collection('Devices').findOneAndUpdate({}, { $push: { logs: { message: req.body.message, time: new Date().getTime() } } })
+		res.json({
+			status: 'SUCCESS'
+		});
+		const io = getIO();
+
+		io.emit("FromAPI", { log: { message: req.body.message, time: new Date().getTime() } });
+
+	} else {
+		res.json({
+			status: 'DENIED',
+			errorDescription: 'body.message is undefined.'
+		})
 	}
-}
 
+});
 
-function pad(num, size) {
-	num = num.toString();
-	while (num.length < size) num = "0" + num;
-	return num;
-}
-
-function pad2(num, size) {
-	num = num.toString();
-	while (num.length < size) num = " " + num;
-	return num;
-}
+export default handler;
